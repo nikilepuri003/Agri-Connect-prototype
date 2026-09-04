@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#a8e0a1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f0f0f0;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#grad1)" />
+  <g>
+    <path d="M100 500 Q150 400 200 500 T300 500 T400 500 T500 500 T600 500 T700 500" fill="none" stroke="#6c9e6c" stroke-width="5" />
+    <path d="M0 400 Q100 300 200 400 T400 400 T600 400 T800 400" fill="none" stroke="#4b7f4b" stroke-width="5" />
+    <circle cx="100" cy="500" r="10" fill="#4b7f4b" />
+    <circle cx="200" cy="500" r="10" fill="#4b7f4b" />
+    <circle cx="300" cy="500" r="10" fill="#4b7f4b" />
+    <circle cx="400" cy="500" r="10" fill="#4b7f4b" />
+    <circle cx="500" cy="500" r="10" fill="#4b7f4b" />
+    <circle cx="600" cy="500" r="10" fill="#4b7f4b" />
+    <circle cx="700" cy="500" r="10" fill="#4b7f4b" />
+  </g>
+</svg>

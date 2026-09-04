@@ -1,0 +1,18 @@
+[theme]
+base = "light"
+primaryColor = "#287a55"
+backgroundColor = "#fbf8ef"
+secondaryBackgroundColor = "#eef5e8"
+textColor = "#173b35"
+font = "sans-serif"
+baseRadius = "medium"
+buttonRadius = "medium"
+showWidgetBorder = true
+linkUnderline = false
+
+[server]
+headless = false
+port = 8501
+enableCORS = false
+allowRunOnSave = true
+
