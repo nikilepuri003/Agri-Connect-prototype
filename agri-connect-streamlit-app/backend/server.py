@@ -9,12 +9,10 @@ from __future__ import annotations
 import json
 import mimetypes
 import os
-import re
 import sys
 import urllib.parse
 import urllib.request
 import urllib.error
-from datetime import datetime, timezone
 from http import HTTPStatus
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
@@ -25,7 +23,6 @@ FRONTEND_DIR = BASE_DIR / "frontend"
 DB_DIR = BASE_DIR / "db"
 DATA_JSON_PATH = DB_DIR / "data.json"
 CONFIG_JSON_PATH = Path(__file__).resolve().parent / "config.json"
-_daily_market_cache: tuple[str, dict] | None = None
 
 
 def load_config() -> dict:
@@ -35,44 +32,14 @@ def load_config() -> dict:
                 return json.load(f)
         except Exception as e:
             print(f"Warning: Could not read config.json: {e}", file=sys.stderr)
-    return {
-        "port": int(os.getenv("PORT", "8000")),
-        "host": os.getenv("HOST", "localhost"),
-        "openai_api_key": os.getenv("OPENAI_API_KEY", ""),
-        "google_maps_api_key": os.getenv("GOOGLE_MAPS_API_KEY", ""),
-        "market_data_api_url": os.getenv("MARKET_DATA_API_URL", ""),
-    }
+    return {"port": 8000, "host": "localhost"}
 
 
 def load_data() -> dict:
-    global _daily_market_cache
     if DATA_JSON_PATH.exists():
         with open(DATA_JSON_PATH, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    else:
-        data = {}
-
-    today = datetime.now(timezone.utc).date().isoformat()
-    if _daily_market_cache and _daily_market_cache[0] == today:
-        return _daily_market_cache[1]
-
-    data["last_updated"] = today
-    data["update_source"] = "demo database"
-    update_url = os.getenv("MARKET_DATA_API_URL", "")
-    if update_url:
-        try:
-            with urllib.request.urlopen(update_url, timeout=8) as response:
-                fresh = json.loads(response.read().decode("utf-8"))
-            if isinstance(fresh, dict) and isinstance(fresh.get("markets"), list):
-                data["markets"] = fresh["markets"]
-                if isinstance(fresh.get("rentals"), list):
-                    data["rentals"] = fresh["rentals"]
-                data["update_source"] = "market data provider"
-        except (OSError, ValueError, urllib.error.URLError) as error:
-            print(f"Daily market update unavailable: {error}", file=sys.stderr)
-
-    _daily_market_cache = (today, data)
-    return data
+            return json.load(f)
+    return {}
 
 
 # Regional Mandi Knowledgebase for dynamic discovery when OpenAI key is not configured
@@ -184,16 +151,8 @@ def offline_agricultural_expert(message: str) -> str:
     """Intelligent rule-based fallback expert when OpenAI API key is unavailable."""
     msg = message.lower()
 
-    def mentions(*terms: str) -> bool:
-        return any(
-            (re.search(rf"(?<!\w){re.escape(term)}(?!\w)", msg) is not None)
-            if term.isascii()
-            else term in msg
-            for term in terms
-        )
-
-    if mentions("టమాటా", "tomato", "tamatar"):
-        if mentions("pest", "disease", "పురుగు", "తెగులు", "leaf", "rot"):
+    if any(w in msg in msg for w in ["టమాటా", "tomato", "tamatar"]):
+        if any(w in msg for w in ["pest", "disease", "పురుగు", "తెగులు", "leaf", "rot"]):
             return (
                 "🍅 **Tomato Health & Pest Advisory**:\n"
                 "• **Early/Late Blight**: Spray Mancozeb 75% WP @ 2.5g/L water or Copper Oxychloride @ 3g/L.\n"
@@ -208,7 +167,7 @@ def offline_agricultural_expert(message: str) -> str:
             "• **Storage**: Keep harvested crates under shade at 15–20°C with ventilation to avoid softening."
         )
 
-    if mentions("మిర్చి", "chilli", "mirchi"):
+    if any(w in msg for w in ["మిర్చి", "chilli", "mirchi"]):
         return (
             "🌶️ **Chilli (Mirchi) Protection & Selling Strategy**:\n"
             "• **Thrips / Black Thrips Management**: Use Blue sticky traps (25–30/acre). Spray Fipronil 5% SC @ 2ml/L or Spinetoram 11.7 SC @ 1ml/L.\n"
@@ -216,7 +175,7 @@ def offline_agricultural_expert(message: str) -> str:
             "• **Market Note**: Guntur & Warangal are primary trading hubs. Clean, moisture-controlled dried red chillies currently benchmark between ₹105–₹125/kg."
         )
 
-    if mentions("rice", "paddy", "బియ్యం", "వరి"):
+    if any(w in msg for w in ["rice", "paddy", "బియ్యం", "వరి"]):
         return (
             "🌾 **Paddy / Rice Cultivation Tips**:\n"
             "• **Blast Disease (Aggi Tegulu)**: Spray Tricyclazole 75% WP @ 0.6g/L water.\n"
@@ -224,7 +183,7 @@ def offline_agricultural_expert(message: str) -> str:
             "• **Selling Benchmark**: Standard grade paddy benchmarks at ₹32–₹36/kg in nearby coastal Andhra & Telangana grain yards."
         )
 
-    if mentions("cotton", "పత్తి", "kapas"):
+    if any(w in msg for w in ["cotton", "పత్తి", "kapas"]):
         return (
             "☁️ **Cotton Care & Fair Pricing**:\n"
             "• **Pink Bollworm**: Install Pheromone traps. Spray Profenofos 50% EC @ 2ml/L or Emamectin Benzoate.\n"
@@ -232,7 +191,7 @@ def offline_agricultural_expert(message: str) -> str:
             "• **Benchmark**: Current APMC rates range from ₹68–₹74/kg."
         )
 
-    if mentions("pm kisan", "scheme", "subsidy", "పథకం", "సబ్సిడీ"):
+    if any(w in msg for w in ["pm kisan", "scheme", "subsidy", "పథకం", "సబ్సిడీ"]):
         return (
             "🏛️ **Farmer Welfare & Government Schemes**:\n"
             "• **PM-KISAN**: ₹6,000/year in 3 equal installments directly to bank accounts via DBT. Check status on `pmkisan.gov.in`.\n"
@@ -241,32 +200,6 @@ def offline_agricultural_expert(message: str) -> str:
         )
 
     # General fallback
-    if mentions("wheat", "gehun", "గోధుమ"):
-        return (
-            "🌱 **Wheat Crop Guidance**:\n"
-            "• **Rust / Mildew**: Inspect leaves weekly and use only locally approved fungicides at label rates.\n"
-            "• **Aphids**: Monitor the underside of leaves and preserve beneficial insects before spraying.\n"
-            "• **Selling tip**: Keep grain dry, clean, and free of stones to protect your grade and buyer offer."
-        )
-
-    if mentions("fertilizer", "fertiliser", "npk", "soil", "manure", "खाद", "ఎరువు"):
-        return (
-            "🧪 **Soil & Fertilizer Guidance**:\n"
-            "• Test soil before choosing a fertilizer rate.\n"
-            "• Prefer compost or farmyard manure plus a soil-test-based NPK plan.\n"
-            "• Do not mix pesticides and fertilizers unless the product labels explicitly allow it.\n"
-            "• Ask your local agricultural officer for a crop- and soil-specific recommendation."
-        )
-
-    if mentions("price", "rate", "market", "mandi", "sell", "कीमत", "ధర"):
-        return (
-            "📈 **Market Selling Guidance**:\n"
-            "• Compare the net amount after transport, stall rent, loading, and commission.\n"
-            "• Ask for the grade, weighing method, and payment timing before accepting a quote.\n"
-            "• Use the Market Map and Discover Mandis buttons to refresh nearby options.\n"
-            "• Prices shown in this demo are estimates, not guaranteed live quotes."
-        )
-
     return (
         "🌾 **Namaste! I am your Kisan AI Assistant**.\n\n"
         "I can help you with:\n"
@@ -293,7 +226,7 @@ class AgriConnectHandler(SimpleHTTPRequestHandler):
         if path == "/api/config":
             cfg = load_config()
             safe_cfg = {
-                "has_google_maps_key": bool(cfg.get("google_maps_api_key") or os.getenv("GOOGLE_MAPS_API_KEY")),
+                "google_maps_api_key": cfg.get("google_maps_api_key", ""),
                 "has_openai_key": bool(cfg.get("openai_api_key") or os.getenv("OPENAI_API_KEY")),
                 "app_name": "AgriConnect",
                 "version": "2.1.0"
@@ -323,7 +256,7 @@ class AgriConnectHandler(SimpleHTTPRequestHandler):
             body = {}
 
         cfg = load_config()
-        configured_key = cfg.get("openai_api_key") or os.getenv("OPENAI_API_KEY", "")
+        configured_key = body.get("apiKey") or cfg.get("openai_api_key") or os.getenv("OPENAI_API_KEY", "")
 
         # Endpoint 1: AI Chatbot (/api/chat)
         if path == "/api/chat":

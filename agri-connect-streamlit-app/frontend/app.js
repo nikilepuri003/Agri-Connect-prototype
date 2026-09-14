@@ -111,7 +111,6 @@ async function loadData() {
     const res = await fetch("/api/data");
     if (res.ok) {
       appData = await res.json();
-      updateMarketDataStatus();
       return;
     }
   } catch (e) {
@@ -122,7 +121,6 @@ async function loadData() {
     const res2 = await fetch("data.json");
     if (res2.ok) {
       appData = await res2.json();
-      updateMarketDataStatus();
       return;
     }
   } catch (e2) {
@@ -130,15 +128,6 @@ async function loadData() {
   }
 
   appData = FALLBACK_DATA;
-  updateMarketDataStatus();
-}
-
-function updateMarketDataStatus() {
-  const status = document.getElementById("market-data-status");
-  if (!status || !appData) return;
-  const date = appData.last_updated || "demo date";
-  const source = appData.update_source || "demo database";
-  status.textContent = `Market data checked daily · Updated ${date} · Source: ${source}`;
 }
 
 // Navigation Handling
@@ -278,12 +267,14 @@ async function discoverNearbyMandis() {
   }
 
   try {
+    const apiKey = localStorage.getItem("agri_openai_key") || "";
     const res = await fetch("/api/market-lookup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: jsonStringify({
         location: location,
         crop: state.selectedCrop,
+        apiKey: apiKey
       })
     });
 
@@ -892,26 +883,6 @@ function renderMarketMapPage() {
       list.appendChild(card);
     });
   }
-
-  renderRegionalVideos(state.location || "");
-}
-
-const REGIONAL_VIDEOS = {
-  kurnool: { title: "Kurnool farming lessons", query: "Kurnool agriculture farmer market Telugu" },
-  warangal: { title: "Warangal crop and mandi lessons", query: "Warangal agriculture farmer market Telugu" },
-  rajahmundry: { title: "Godavari farming lessons", query: "Rajahmundry Godavari agriculture farmer Telugu" },
-  anantapur: { title: "Anantapur dryland farming lessons", query: "Anantapur dryland farming farmer Telugu" },
-  khammam: { title: "Khammam chilli market lessons", query: "Khammam chilli farming farmer Telugu" },
-  default: { title: "Regional farmer learning", query: "Indian farmer crop market price Telugu" }
-};
-
-function renderRegionalVideos(location) {
-  const container = document.getElementById("regional-videos");
-  if (!container) return;
-  const key = Object.keys(REGIONAL_VIDEOS).find((name) => name !== "default" && location.toLowerCase().includes(name)) || "default";
-  const video = REGIONAL_VIDEOS[key];
-  const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(video.query)}`;
-  container.innerHTML = `<div class="video-card"><div class="video-art">▶</div><div><span class="section-kicker">${key === "default" ? "FARM LEARNING" : key.toUpperCase()}</span><h4>${video.title}</h4><p>Open a curated regional search for crop care, local markets, and farmer practices.</p><a class="btn btn-outline" target="_blank" rel="noopener" href="${searchUrl}">Watch regional lessons ↗</a></div></div>`;
 }
 
 // Buyer Offers Page
@@ -971,7 +942,11 @@ function setupChatbot() {
   const inputField = document.getElementById("input-chat-msg");
   const micChatBtn = document.getElementById("btn-chat-mic");
 
-  if (keyInput) keyInput.disabled = true;
+  // Load saved key
+  const savedKey = localStorage.getItem("agri_openai_key");
+  if (savedKey && keyInput) {
+    keyInput.value = savedKey;
+  }
 
   // Toggle Chat Window
   if (fab && chatWindow) {
@@ -1004,7 +979,14 @@ function setupChatbot() {
 
   if (saveKeyBtn && keyInput) {
     saveKeyBtn.addEventListener("click", () => {
-      showToast("AI keys are managed securely by the app administrator.");
+      const k = keyInput.value.trim();
+      if (k) {
+        localStorage.setItem("agri_openai_key", k);
+        showToast("OpenAI API Key saved!");
+      } else {
+        localStorage.removeItem("agri_openai_key");
+        showToast("Key cleared. Using built-in Kisan AI.");
+      }
       settingsOverlay.classList.remove("open");
     });
   }
@@ -1097,12 +1079,14 @@ async function sendChatMessage(text) {
   state.chatHistory.push({ role: "user", content: msg });
 
   try {
+    const apiKey = localStorage.getItem("agri_openai_key") || "";
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: jsonStringify({
         message: msg,
         history: state.chatHistory,
+        apiKey: apiKey
       })
     });
 

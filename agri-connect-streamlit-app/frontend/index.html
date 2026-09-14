@@ -264,7 +264,6 @@
       <section id="view-market-map" class="page-view" style="display: none;">
         <h1 style="font-size: 2.2rem; margin-bottom: 0.25rem;">Market map</h1>
         <p style="color: #4a665f; margin-bottom: 1.5rem;">See markets, roads, and familiar landmarks before you leave the farm.</p>
-        <div id="market-data-status" class="info-note" style="margin-bottom:1rem;"></div>
 
         <div id="map-container"></div>
 
@@ -272,8 +271,6 @@
         <div id="map-markets-list">
           <!-- Populated by JavaScript -->
         </div>
-        <h3 style="margin: 1.5rem 0 1rem;">Regional learning videos</h3>
-        <div id="regional-videos"></div>
       </section>
 
       <!-- View 3: Buyer Offers -->
@@ -333,14 +330,14 @@
     <div class="chat-settings-overlay" id="chat-settings-overlay">
       <h4 style="margin-bottom:0.4rem; color:var(--ink);">AI Intelligence Settings</h4>
       <p style="font-size:0.85rem; color:#555; margin-bottom:1.1rem; line-height:1.4;">
-        Live AI is configured securely by the app administrator. If no server key is configured, Kisan AI uses its built-in agricultural knowledgebase.
+        Connect your OpenAI API key for live GPT-4o intelligence. If left empty, Kisan AI seamlessly runs its built-in Indian agricultural knowledgebase.
       </p>
       <div class="form-group" style="margin-bottom:1.2rem;">
-        <label class="form-label" for="input-openai-key">Server AI status</label>
-        <input type="text" id="input-openai-key" class="form-control" value="Managed securely by administrator" readonly />
+        <label class="form-label" for="input-openai-key">OpenAI API Key (optional)</label>
+        <input type="password" id="input-openai-key" class="form-control" placeholder="sk-proj-..." />
       </div>
       <div class="btn-row">
-        <button type="button" id="btn-save-key" class="btn btn-primary">Use server AI</button>
+        <button type="button" id="btn-save-key" class="btn btn-primary">Save Key</button>
         <button type="button" id="btn-close-settings" class="btn btn-outline">Close</button>
       </div>
     </div>
