@@ -1,6 +1,7 @@
 /**
- * AgriConnect Web Application Logic
- * Implements interactive calculations, dynamic views, voice input, and map visualization.
+ * AgriConnect Web Application Logic (Version 2.1)
+ * Enhanced with Dynamic OpenAI Market Discovery, Overhauled Voice Assistant,
+ * Interactive Kisan AI Chatbot, and Agricultural Live Wallpaper.
  */
 
 // Global Application State
@@ -18,10 +19,12 @@ let state = {
   voiceLanguage: "Telugu",
   detectedCrop: null,
   voiceNote: "",
-  mapInstance: null
+  mapInstance: null,
+  wallpaperActive: true,
+  chatHistory: []
 };
 
-// Embedded fallback data in case /api/data is unreachable (e.g. opening index.html directly from filesystem)
+// Embedded fallback data in case /api/data is unreachable
 const FALLBACK_DATA = {
   crops: {
     "Tomato": { "icon": "🍅", "unit": "₹/kg" },
@@ -89,13 +92,16 @@ const FALLBACK_DATA = {
   }
 };
 
-// Initialize Application
+// Application Bootstrapping
 document.addEventListener("DOMContentLoaded", async () => {
   await loadData();
   setupNavigation();
   setupMobileDrawer();
   setupInputs();
   setupVoice();
+  setupDynamicMandiDiscovery();
+  setupChatbot();
+  initLiveWallpaper();
   renderApp();
 });
 
@@ -132,8 +138,6 @@ function setupNavigation() {
       e.preventDefault();
       const page = item.getAttribute("data-page");
       switchPage(page);
-      
-      // Close mobile drawer if open
       document.querySelector(".sidebar").classList.remove("open");
     });
   });
@@ -184,6 +188,13 @@ function setupInputs() {
       state.location = e.target.value.trim();
       renderSellingPlan();
     });
+
+    locInput.addEventListener("keypress", e => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        discoverNearbyMandis();
+      }
+    });
   }
 
   if (qtyInput) {
@@ -200,7 +211,6 @@ function setupInputs() {
     });
   }
 
-  // Quality grade change
   const gradeSelect = document.getElementById("select-grade");
   if (gradeSelect) {
     gradeSelect.addEventListener("change", e => {
@@ -209,7 +219,6 @@ function setupInputs() {
     });
   }
 
-  // Selling path segmented control
   document.querySelectorAll(".segment-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".segment-btn").forEach(b => b.classList.remove("active"));
@@ -219,7 +228,6 @@ function setupInputs() {
     });
   });
 
-  // Accordion toggle
   const accHeader = document.querySelector(".accordion-header");
   if (accHeader) {
     accHeader.addEventListener("click", () => {
@@ -229,13 +237,116 @@ function setupInputs() {
   }
 }
 
-// Voice Assistant with Web Speech API
+/* ==========================================================
+   DYNAMIC OPENAI & SPATIAL MANDI DISCOVERY
+   ========================================================== */
+function setupDynamicMandiDiscovery() {
+  const btn = document.getElementById("btn-discover-mandis");
+  if (btn) {
+    btn.addEventListener("click", discoverNearbyMandis);
+  }
+}
+
+async function discoverNearbyMandis() {
+  const location = (state.location || "").trim();
+  const btn = document.getElementById("btn-discover-mandis");
+  const statusDiv = document.getElementById("mandi-discovery-status");
+
+  if (!location) {
+    showToast("Please enter a town or village name first!");
+    return;
+  }
+
+  if (btn) {
+    btn.classList.add("loading");
+    btn.innerHTML = `<span>⏳</span> Searching...`;
+  }
+
+  if (statusDiv) {
+    statusDiv.innerHTML = `<div class="mandi-discovery-badge" style="background:#eef6ea; color:#235d47;"><span>🔍</span> Finding nearest APMC mandis for ${location}...</div>`;
+  }
+
+  try {
+    const apiKey = localStorage.getItem("agri_openai_key") || "";
+    const res = await fetch("/api/market-lookup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: jsonStringify({
+        location: location,
+        crop: state.selectedCrop,
+        apiKey: apiKey
+      })
+    });
+
+    if (res.ok) {
+      const result = await res.json();
+      if (result.markets && result.markets.length > 0) {
+        // Merge into current dataset without duplicates
+        result.markets.forEach(newMarket => {
+          const idx = appData.markets.findIndex(m => m.market.toLowerCase() === newMarket.market.toLowerCase());
+          if (idx >= 0) {
+            appData.markets[idx] = newMarket;
+          } else {
+            appData.markets.push(newMarket);
+          }
+        });
+
+        if (result.rentals) {
+          result.rentals.forEach(newRental => {
+            const rIdx = appData.rentals.findIndex(r => r.market.toLowerCase() === newRental.market.toLowerCase());
+            if (rIdx >= 0) {
+              appData.rentals[rIdx] = newRental;
+            } else {
+              appData.rentals.push(newRental);
+            }
+          });
+        }
+
+        const sourceLabel = result.source === "openai" ? "OpenAI Intelligence" : "Agricultural Spatial Engine";
+        if (statusDiv) {
+          statusDiv.innerHTML = `<div class="mandi-discovery-badge"><span>✅</span> Added ${result.markets.length} Mandis near ${location} via ${sourceLabel}</div>`;
+        }
+        showToast(`Discovered ${result.markets.length} nearby markets!`);
+
+        renderSellingPlan();
+        if (state.currentPage === "market-map") {
+          renderMarketMapPage();
+        }
+      }
+    } else {
+      if (statusDiv) statusDiv.innerHTML = "";
+    }
+  } catch (err) {
+    console.warn("Market discovery lookup error:", err);
+    if (statusDiv) statusDiv.innerHTML = "";
+  } finally {
+    if (btn) {
+      btn.classList.remove("loading");
+      btn.innerHTML = `<span>🔍</span> Discover Mandis`;
+    }
+  }
+}
+
+function jsonStringify(obj) {
+  try {
+    return JSON.stringify(obj);
+  } catch (e) {
+    return "{}";
+  }
+}
+
+/* ==========================================================
+   VOICE ASSISTANT (OVERHAULED & VISUALIZED)
+   ========================================================== */
+let voiceAnimId = null;
+
 function setupVoice() {
   const micBtn = document.getElementById("btn-voice-record");
   const langSelect = document.getElementById("select-voice-lang");
   const voiceAlert = document.getElementById("voice-feedback-alert");
+  const interimBox = document.getElementById("voice-interim-preview");
+  const waveCanvas = document.getElementById("voice-waveform-canvas");
 
-  // Populate voice languages
   if (langSelect && appData && appData.voice) {
     langSelect.innerHTML = "";
     Object.keys(appData.voice.languages).forEach(lang => {
@@ -256,65 +367,139 @@ function setupVoice() {
   if (!SpeechRecognition) {
     if (micBtn) {
       micBtn.addEventListener("click", () => {
-        showToast("Web Speech is not supported in this browser. Please type below.");
+        showToast("Speech Recognition requires Chrome, Edge, or a browser with Web Speech API.");
       });
     }
     return;
   }
 
-  const recognition = new SpeechRecognition();
-  recognition.continuous = false;
-  recognition.interimResults = false;
-
+  let recognition = null;
   let isListening = false;
 
-  if (micBtn) {
-    micBtn.addEventListener("click", () => {
-      if (isListening) {
-        recognition.stop();
-        return;
-      }
+  function initRecognition() {
+    recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true; // Real-time words as you speak!
 
-      const langCode = (appData.voice.languages[state.voiceLanguage]) || "en-IN";
-      recognition.lang = langCode;
-
-      try {
-        recognition.start();
-        isListening = true;
-        micBtn.classList.add("listening");
-        micBtn.innerHTML = `<span>🔴</span> Listening... Tap to stop`;
-      } catch (err) {
-        console.error("Speech recognition error:", err);
+    recognition.onstart = () => {
+      isListening = true;
+      micBtn.classList.add("listening");
+      micBtn.innerHTML = `<span>🔴</span> Listening... Speak now`;
+      if (waveCanvas) {
+        waveCanvas.style.display = "block";
+        startWaveformAnimation(waveCanvas);
       }
-    });
+      if (interimBox) {
+        interimBox.style.display = "block";
+        interimBox.innerHTML = `Listening in <strong>${state.voiceLanguage}</strong>...`;
+      }
+      if (voiceAlert) voiceAlert.style.display = "none";
+    };
 
     recognition.onresult = event => {
-      isListening = false;
-      micBtn.classList.remove("listening");
-      micBtn.innerHTML = `<span>🎙️</span> Tap microphone to speak`;
+      let interimTranscript = "";
+      let finalTranscript = "";
 
-      const transcript = event.results[0][0].transcript;
-      state.voiceNote = transcript;
-      handleVoiceTranscript(transcript);
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        } else {
+          interimTranscript += event.results[i][0].transcript;
+        }
+      }
+
+      if (interimBox && (interimTranscript || finalTranscript)) {
+        interimBox.innerHTML = `Heard: "<strong>${finalTranscript || interimTranscript}</strong>"`;
+      }
+
+      if (finalTranscript) {
+        state.voiceNote = finalTranscript;
+        handleVoiceTranscript(finalTranscript);
+      }
     };
 
     recognition.onerror = event => {
-      isListening = false;
-      micBtn.classList.remove("listening");
-      micBtn.innerHTML = `<span>🎙️</span> Tap microphone to speak`;
+      stopListeningState();
+      let msg = `Microphone notice (${event.error}).`;
+      if (event.error === "not-allowed") {
+        msg = "Microphone access was blocked. Please click the lock icon in your browser address bar to allow microphone access.";
+      } else if (event.error === "no-speech") {
+        msg = "No speech was detected. Please try tapping again and speaking closer to the mic.";
+      }
       if (voiceAlert) {
         voiceAlert.className = "voice-alert info";
         voiceAlert.style.display = "block";
-        voiceAlert.textContent = `Microphone notice: ${event.error}. You can continue typing below.`;
+        voiceAlert.textContent = msg;
       }
     };
 
     recognition.onend = () => {
-      isListening = false;
-      micBtn.classList.remove("listening");
-      micBtn.innerHTML = `<span>🎙️</span> Tap microphone to speak`;
+      stopListeningState();
     };
   }
+
+  function stopListeningState() {
+    isListening = false;
+    if (micBtn) {
+      micBtn.classList.remove("listening");
+      micBtn.innerHTML = `<span>🎙️</span> Tap microphone to speak`;
+    }
+    if (waveCanvas) {
+      waveCanvas.style.display = "none";
+      if (voiceAnimId) cancelAnimationFrame(voiceAnimId);
+    }
+  }
+
+  if (micBtn) {
+    micBtn.addEventListener("click", () => {
+      if (isListening) {
+        if (recognition) recognition.stop();
+        stopListeningState();
+        return;
+      }
+
+      try {
+        initRecognition();
+        const langCode = (appData.voice.languages[state.voiceLanguage]) || "te-IN";
+        recognition.lang = langCode;
+        recognition.start();
+      } catch (err) {
+        console.warn("Speech recognition start issue:", err);
+        stopListeningState();
+      }
+    });
+  }
+}
+
+function startWaveformAnimation(canvas) {
+  const ctx = canvas.getContext("2d");
+  let step = 0;
+
+  function renderWave() {
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.beginPath();
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = "#287a55";
+
+    const width = canvas.width;
+    const height = canvas.height;
+    const midY = height / 2;
+
+    for (let x = 0; x < width; x++) {
+      const y = midY + Math.sin((x * 0.05) + step) * 12 * Math.sin((x * 0.01) + step * 0.5);
+      if (x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    step += 0.15;
+    voiceAnimId = requestAnimationFrame(renderWave);
+  }
+
+  renderWave();
 }
 
 function handleVoiceTranscript(transcript) {
@@ -325,15 +510,15 @@ function handleVoiceTranscript(transcript) {
     voiceAlert.style.display = "block";
     if (detected) {
       voiceAlert.className = "voice-alert success";
-      voiceAlert.innerHTML = `✅ Heard: "<em>${transcript}</em>". Found <strong>${detected}</strong>! Prices are updated below.`;
+      voiceAlert.innerHTML = `✅ Heard: "<em>${transcript}</em>". Found <strong>${detected}</strong>! Updated prices below.`;
       state.selectedCrop = detected;
     } else {
       voiceAlert.className = "voice-alert info";
-      voiceAlert.innerHTML = `ℹ️ Heard: "<em>${transcript}</em>". Pick your crop below to view prices.`;
+      voiceAlert.innerHTML = `ℹ️ Heard: "<em>${transcript}</em>". Choose your crop below to calculate prices.`;
     }
   }
 
-  renderSellingPlan();
+  renderApp();
 }
 
 function detectCropFromText(text) {
@@ -351,7 +536,7 @@ function detectCropFromText(text) {
 function getMarketDistance(market, userLocation) {
   if (!userLocation) return market.distance;
   const lowerLoc = userLocation.toLowerCase();
-  const hints = appData.location_distance_hints;
+  const hints = appData.location_distance_hints || {};
 
   for (const [key, distMap] of Object.entries(hints)) {
     if (lowerLoc.includes(key)) {
@@ -417,7 +602,6 @@ function renderSellingPlan() {
   const transportCost = state.transportCost;
   const userLoc = state.location;
 
-  // Grade description
   const gradeNote = document.getElementById("grade-note");
   if (gradeNote && appData.quality_grades[grade]) {
     gradeNote.textContent = `${appData.quality_grades[grade].description}. Prices below are adjusted for this grade.`;
@@ -425,9 +609,9 @@ function renderSellingPlan() {
 
   // Calculate Market Prices & Best Option
   let marketsCalculated = appData.markets.map(m => {
-    const price = applyQualityPrice(m.prices[crop] || 0, grade);
+    const price = applyQualityPrice((m.prices && m.prices[crop]) ? m.prices[crop] : 25, grade);
     const distance = getMarketDistance(m, userLoc);
-    const rental = appData.rentals.find(r => r.market === m.market) || { daily_rent: 400 };
+    const rental = appData.rentals.find(r => r.market === m.market) || { daily_rent: 350, security_deposit: 800, landmark: m.landmarks || "APMC Yard" };
     const defaultDays = 3;
     const estimatedShopNet = Math.round(price * quantity - rental.daily_rent * defaultDays - transportCost * distance * 2);
 
@@ -440,14 +624,14 @@ function renderSellingPlan() {
     };
   });
 
-  // Sort by Estimated Shop Net descending
   marketsCalculated.sort((a, b) => b.estimatedShopNet - a.estimatedShopNet);
-  const bestMarket = marketsCalculated[0];
+  const bestMarket = marketsCalculated.length > 0 ? marketsCalculated[0] : null;
 
-  // Calculate Buyers for this crop
+  if (!bestMarket) return;
+
+  // Calculate Buyers
   let matchingBuyers = appData.buyers.filter(b => b.crop === crop).map(b => {
     const adjustedPrice = applyQualityPrice(b.price, grade);
-    // Find distance to buyer location
     const matchedMarket = marketsCalculated.find(m => m.location.toLowerCase() === b.location.toLowerCase());
     const buyerDistance = matchedMarket ? matchedMarket.userDistance : bestMarket.userDistance;
     const netEarning = Math.round(adjustedPrice * quantity - transportCost * buyerDistance * 2);
@@ -477,13 +661,13 @@ function renderSellingPlan() {
       const recommendation = shopNet >= buyerNet ? "Rent a shop" : `Sell to ${bestBuyer.buyer}`;
       const recValue = Math.max(shopNet, buyerNet);
 
-      recBanner.innerHTML = `<strong>Fair-price recommendation:</strong> ${recommendation} could leave about <strong>₹${recValue.toLocaleString("en-IN")} net</strong> for ${quantity.toLocaleString("en-IN")} kg after estimated travel and selling costs. This compares nearby options, not only the highest quote.`;
+      recBanner.innerHTML = `<strong>Fair-price recommendation:</strong> ${recommendation} could leave about <strong>₹${recValue.toLocaleString("en-IN")} net</strong> for ${quantity.toLocaleString("en-IN")} kg after estimated travel and selling costs.`;
     } else {
       recBanner.innerHTML = `<strong>Estimated shop earning:</strong> ₹${bestMarket.estimatedShopNet.toLocaleString("en-IN")} net for ${quantity.toLocaleString("en-IN")} kg after estimated travel and 3 days of rent.`;
     }
   }
 
-  // Render Selling Path (Shop vs Buyer)
+  // Render Selling Path
   const shopContainer = document.getElementById("selling-path-shop");
   const buyerContainer = document.getElementById("selling-path-buyer");
 
@@ -499,7 +683,6 @@ function renderSellingPlan() {
 }
 
 function renderShopPath(bestMarket, allMarkets, quantity, transportCost, userLoc) {
-  // Available shops for best market
   const marketRentals = appData.rentals.filter(r => r.market === bestMarket.market);
   const shopSelect = document.getElementById("select-shop");
   const daysInput = document.getElementById("input-rental-days");
@@ -510,13 +693,20 @@ function renderShopPath(bestMarket, allMarkets, quantity, transportCost, userLoc
 
   if (shopSelect) {
     shopSelect.innerHTML = "";
-    marketRentals.forEach(r => {
+    if (marketRentals.length === 0) {
       const opt = document.createElement("option");
-      opt.value = r.shop;
-      opt.textContent = `${r.shop} (₹${r.daily_rent}/day)`;
-      if (r.shop === state.rentalShop) opt.selected = true;
+      opt.value = "Stall A";
+      opt.textContent = "Market Yard Stall (₹350/day)";
       shopSelect.appendChild(opt);
-    });
+    } else {
+      marketRentals.forEach(r => {
+        const opt = document.createElement("option");
+        opt.value = r.shop;
+        opt.textContent = `${r.shop} (₹${r.daily_rent}/day)`;
+        if (r.shop === state.rentalShop) opt.selected = true;
+        shopSelect.appendChild(opt);
+      });
+    }
 
     shopSelect.onchange = e => {
       state.rentalShop = e.target.value;
@@ -532,7 +722,7 @@ function renderShopPath(bestMarket, allMarkets, quantity, transportCost, userLoc
     renderShopPath(bestMarket, allMarkets, quantity, transportCost, userLoc);
   };
 
-  const selectedRental = marketRentals.find(r => r.shop === state.rentalShop) || marketRentals[0] || { daily_rent: 400, security_deposit: 1000, landmark: "Market yard" };
+  const selectedRental = marketRentals.find(r => r.shop === state.rentalShop) || marketRentals[0] || { daily_rent: 350, security_deposit: 800, landmark: bestMarket.landmarks || "Market Yard" };
   const dailyRent = selectedRental.daily_rent;
   const deposit = selectedRental.security_deposit;
   const amountToCarry = dailyRent * days + deposit;
@@ -545,7 +735,6 @@ function renderShopPath(bestMarket, allMarkets, quantity, transportCost, userLoc
 
   document.getElementById("shop-landmark-info").innerHTML = `<strong>Landmark:</strong> ${selectedRental.landmark}<br><strong>Shop location:</strong> ${bestMarket.location} · ${bestMarket.userDistance} km from your location`;
 
-  // Route Buttons
   const btnDirections = document.getElementById("btn-directions");
   const btnViewMarket = document.getElementById("btn-view-market");
 
@@ -555,7 +744,6 @@ function renderShopPath(bestMarket, allMarkets, quantity, transportCost, userLoc
   btnDirections.href = directionsUrl;
   btnViewMarket.href = viewUrl;
 
-  // Render Market Comparison Table
   const tableBody = document.querySelector("#market-comparison-table tbody");
   if (tableBody) {
     tableBody.innerHTML = "";
@@ -632,32 +820,46 @@ function renderMarketMapPage() {
   const mapDiv = document.getElementById("map-container");
   if (!mapDiv) return;
 
-  // Initialize Leaflet map if not already done
   if (!state.mapInstance && window.L) {
-    state.mapInstance = L.map("map-container").setView([16.30, 80.45], 9);
+    state.mapInstance = L.map("map-container").setView([16.30, 80.45], 8);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 18,
       attribution: '© OpenStreetMap contributors'
     }).addTo(state.mapInstance);
-
-    // Add markers for each market
-    appData.markets.forEach(m => {
-      const marker = L.marker([m.latitude, m.longitude]).addTo(state.mapInstance);
-      marker.bindPopup(`
-        <div style="font-family:'DM Sans',sans-serif;">
-          <h4 style="margin:0 0 4px; color:#173b35;">${m.market}</h4>
-          <p style="margin:0 0 6px; font-size:12px; color:#555;">${m.landmarks}</p>
-          <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(m.location + " market")}" target="_blank" style="color:#287a55; font-weight:bold; font-size:12px;">Directions ↗</a>
-        </div>
-      `);
-    });
-  } else if (state.mapInstance) {
-    setTimeout(() => {
-      state.mapInstance.invalidateSize();
-    }, 150);
   }
 
-  // Render market cards list
+  if (state.mapInstance && window.L) {
+    // Clear previous markers
+    if (state.markerGroup) {
+      state.markerGroup.clearLayers();
+    } else {
+      state.markerGroup = L.layerGroup().addTo(state.mapInstance);
+    }
+
+    const bounds = [];
+    appData.markets.forEach(m => {
+      if (m.latitude && m.longitude) {
+        bounds.push([m.latitude, m.longitude]);
+        const marker = L.marker([m.latitude, m.longitude]).addTo(state.markerGroup);
+        marker.bindPopup(`
+          <div style="font-family:'DM Sans',sans-serif;">
+            <h4 style="margin:0 0 4px; color:#173b35;">${m.market}</h4>
+            <p style="margin:0 0 6px; font-size:12px; color:#555;">${m.landmarks}</p>
+            <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(m.location + " market")}" target="_blank" style="color:#287a55; font-weight:bold; font-size:12px;">Directions ↗</a>
+          </div>
+        `);
+      }
+    });
+
+    if (bounds.length > 0) {
+      state.mapInstance.fitBounds(bounds, { padding: [30, 30] });
+    }
+
+    setTimeout(() => {
+      state.mapInstance.invalidateSize();
+    }, 200);
+  }
+
   const list = document.getElementById("map-markets-list");
   if (list) {
     list.innerHTML = "";
@@ -724,3 +926,307 @@ function updateBuyerPageTable(selectedCrop) {
   });
 }
 
+/* ==========================================================
+   KISAN AI CHATBOT ENGINE
+   ========================================================== */
+function setupChatbot() {
+  const fab = document.getElementById("kisan-ai-fab");
+  const chatWindow = document.getElementById("kisan-chat-window");
+  const closeBtn = document.getElementById("btn-close-chat");
+  const settingsBtn = document.getElementById("btn-chat-settings");
+  const settingsOverlay = document.getElementById("chat-settings-overlay");
+  const closeSettingsBtn = document.getElementById("btn-close-settings");
+  const saveKeyBtn = document.getElementById("btn-save-key");
+  const keyInput = document.getElementById("input-openai-key");
+  const sendBtn = document.getElementById("btn-send-chat");
+  const inputField = document.getElementById("input-chat-msg");
+  const micChatBtn = document.getElementById("btn-chat-mic");
+
+  // Load saved key
+  const savedKey = localStorage.getItem("agri_openai_key");
+  if (savedKey && keyInput) {
+    keyInput.value = savedKey;
+  }
+
+  // Toggle Chat Window
+  if (fab && chatWindow) {
+    fab.addEventListener("click", () => {
+      chatWindow.style.display = chatWindow.style.display === "flex" ? "none" : "flex";
+      if (chatWindow.style.display === "flex") {
+        inputField.focus();
+      }
+    });
+  }
+
+  if (closeBtn && chatWindow) {
+    closeBtn.addEventListener("click", () => {
+      chatWindow.style.display = "none";
+    });
+  }
+
+  // Toggle Settings Overlay
+  if (settingsBtn && settingsOverlay) {
+    settingsBtn.addEventListener("click", () => {
+      settingsOverlay.classList.toggle("open");
+    });
+  }
+
+  if (closeSettingsBtn && settingsOverlay) {
+    closeSettingsBtn.addEventListener("click", () => {
+      settingsOverlay.classList.remove("open");
+    });
+  }
+
+  if (saveKeyBtn && keyInput) {
+    saveKeyBtn.addEventListener("click", () => {
+      const k = keyInput.value.trim();
+      if (k) {
+        localStorage.setItem("agri_openai_key", k);
+        showToast("OpenAI API Key saved!");
+      } else {
+        localStorage.removeItem("agri_openai_key");
+        showToast("Key cleared. Using built-in Kisan AI.");
+      }
+      settingsOverlay.classList.remove("open");
+    });
+  }
+
+  // Send Message Handlers
+  if (sendBtn && inputField) {
+    sendBtn.addEventListener("click", () => {
+      sendChatMessage(inputField.value);
+    });
+
+    inputField.addEventListener("keypress", e => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        sendChatMessage(inputField.value);
+      }
+    });
+  }
+
+  // Quick chips
+  document.querySelectorAll(".quick-chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      const q = chip.getAttribute("data-query");
+      sendChatMessage(q);
+    });
+  });
+
+  // Voice to Chat
+  if (micChatBtn) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const chatRec = new SpeechRecognition();
+      chatRec.interimResults = false;
+      let chatListening = false;
+
+      micChatBtn.addEventListener("click", () => {
+        if (chatListening) {
+          chatRec.stop();
+          return;
+        }
+        chatRec.lang = (appData.voice.languages[state.voiceLanguage]) || "en-IN";
+        try {
+          chatRec.start();
+          chatListening = true;
+          micChatBtn.classList.add("listening");
+        } catch (e) {
+          console.warn("Chat speech start error:", e);
+        }
+      });
+
+      chatRec.onresult = event => {
+        chatListening = false;
+        micChatBtn.classList.remove("listening");
+        const transcript = event.results[0][0].transcript;
+        if (inputField) inputField.value = transcript;
+        sendChatMessage(transcript);
+      };
+
+      chatRec.onerror = () => {
+        chatListening = false;
+        micChatBtn.classList.remove("listening");
+      };
+
+      chatRec.onend = () => {
+        chatListening = false;
+        micChatBtn.classList.remove("listening");
+      };
+    }
+  }
+}
+
+async function sendChatMessage(text) {
+  const msg = (text || "").trim();
+  if (!msg) return;
+
+  const container = document.getElementById("chat-messages-container");
+  const inputField = document.getElementById("input-chat-msg");
+
+  if (inputField) inputField.value = "";
+
+  // Append User Bubble
+  appendChatBubble(msg, "user");
+
+  // Append Typing Bubble
+  const typingBubble = document.createElement("div");
+  typingBubble.className = "chat-bubble typing";
+  typingBubble.innerHTML = `<span>🌱</span> Kisan AI is thinking...`;
+  container.appendChild(typingBubble);
+  container.scrollTop = container.scrollHeight;
+
+  state.chatHistory.push({ role: "user", content: msg });
+
+  try {
+    const apiKey = localStorage.getItem("agri_openai_key") || "";
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: jsonStringify({
+        message: msg,
+        history: state.chatHistory,
+        apiKey: apiKey
+      })
+    });
+
+    typingBubble.remove();
+
+    if (res.ok) {
+      const data = await res.json();
+      const reply = data.reply || "Namaste! I am here to help. Please ask your question again.";
+      appendChatBubble(formatMarkdown(reply), "bot");
+      state.chatHistory.push({ role: "assistant", content: reply });
+    } else {
+      appendChatBubble("I could not reach the network right now, but please ask again!", "bot");
+    }
+  } catch (err) {
+    typingBubble.remove();
+    appendChatBubble("Namaste! Please check your connection and ask again.", "bot");
+  }
+}
+
+function appendChatBubble(htmlContent, type) {
+  const container = document.getElementById("chat-messages-container");
+  if (!container) return;
+
+  const bubble = document.createElement("div");
+  bubble.className = `chat-bubble ${type}`;
+  bubble.innerHTML = htmlContent;
+  container.appendChild(bubble);
+  container.scrollTop = container.scrollHeight;
+}
+
+function formatMarkdown(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.*?)\*/g, "<em>$1</em>")
+    .replace(/• /g, "<br>• ")
+    .replace(/\n\n/g, "<br><br>")
+    .replace(/\n/g, "<br>");
+}
+
+/* ==========================================================
+   AGRICULTURAL LIVE WALLPAPER (CANVAS MOTION ENGINE)
+   ========================================================== */
+function initLiveWallpaper() {
+  const canvas = document.getElementById("live-wallpaper-canvas");
+  const toggleBtn = document.getElementById("btn-toggle-wallpaper");
+  const statusText = document.getElementById("wallpaper-status-text");
+
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+
+  let animationId = null;
+  let particles = [];
+  const particleCount = 28;
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+
+  resize();
+  window.addEventListener("resize", resize);
+
+  // Initialize floating golden pollen particles
+  for (let i = 0; i < particleCount; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      radius: Math.random() * 2.5 + 1.2,
+      color: Math.random() > 0.4 ? "rgba(243, 179, 61, 0.45)" : "rgba(40, 122, 85, 0.25)",
+      speedX: (Math.random() - 0.5) * 0.4 + 0.15,
+      speedY: -Math.random() * 0.6 - 0.2, // Drifting upwards like morning field pollen
+      phase: Math.random() * Math.PI * 2
+    });
+  }
+
+  function draw() {
+    if (!state.wallpaperActive) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Subtle golden morning sunbeam gradient at top-right
+    const sunGlow = ctx.createRadialGradient(
+      canvas.width * 0.85, canvas.height * 0.1, 10,
+      canvas.width * 0.85, canvas.height * 0.1, canvas.width * 0.45
+    );
+    sunGlow.addColorStop(0, "rgba(243, 225, 157, 0.12)");
+    sunGlow.addColorStop(1, "rgba(255, 255, 255, 0)");
+    ctx.fillStyle = sunGlow;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Render floating pollen
+    particles.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      ctx.fillStyle = p.color;
+      ctx.shadowColor = "rgba(243, 179, 61, 0.6)";
+      ctx.shadowBlur = 4;
+      ctx.fill();
+
+      // Motion update
+      p.x += p.speedX + Math.sin(p.phase) * 0.3;
+      p.y += p.speedY;
+      p.phase += 0.02;
+
+      // Wrap around screen boundaries
+      if (p.y < -10) {
+        p.y = canvas.height + 10;
+        p.x = Math.random() * canvas.width;
+      }
+      if (p.x > canvas.width + 10) p.x = -10;
+      if (p.x < -10) p.x = canvas.width + 10;
+    });
+
+    animationId = requestAnimationFrame(draw);
+  }
+
+  draw();
+
+  // Pause when tab is not visible to conserve battery
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      if (animationId) cancelAnimationFrame(animationId);
+    } else if (state.wallpaperActive) {
+      draw();
+    }
+  });
+
+  // Toggle button handler
+  if (toggleBtn) {
+    toggleBtn.addEventListener("click", () => {
+      state.wallpaperActive = !state.wallpaperActive;
+      canvas.style.opacity = state.wallpaperActive ? "0.85" : "0";
+      if (statusText) statusText.textContent = state.wallpaperActive ? "ON" : "ECO";
+      if (state.wallpaperActive) {
+        draw();
+        showToast("Live Wallpaper: Activated 🌿");
+      } else {
+        if (animationId) cancelAnimationFrame(animationId);
+        showToast("Live Wallpaper: Eco Mode 🍃");
+      }
+    });
+  }
+}

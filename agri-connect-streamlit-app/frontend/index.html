@@ -10,6 +10,32 @@
 </head>
 <body>
 
+  <!-- Ambient Live Wallpaper Canvas -->
+  <canvas id="live-wallpaper-canvas"></canvas>
+
+  <!-- Swaying Crop Horizon (Agricultural Live Animation) -->
+  <div class="swaying-crops-horizon" aria-hidden="true">
+    <svg viewBox="0 0 1200 120" preserveAspectRatio="none" style="width:100%; height:100%; fill:#287a55;">
+      <path class="wheat-stalk" d="M30,120 Q35,60 25,10 Q28,50 35,120 Z" opacity="0.35"/>
+      <path class="wheat-stalk" d="M60,120 Q55,50 68,15 Q62,45 65,120 Z" opacity="0.45"/>
+      <path class="wheat-stalk" d="M120,120 Q128,55 115,5 Q122,48 125,120 Z" opacity="0.4"/>
+      <path class="wheat-stalk" d="M180,120 Q175,65 190,20 Q182,50 185,120 Z" opacity="0.35"/>
+      <path class="wheat-stalk" d="M240,120 Q248,45 235,10 Q242,52 245,120 Z" opacity="0.45"/>
+      <path class="wheat-stalk" d="M300,120 Q295,58 310,12 Q302,48 305,120 Z" opacity="0.4"/>
+      <path class="wheat-stalk" d="M380,120 Q388,50 375,18 Q382,55 385,120 Z" opacity="0.35"/>
+      <path class="wheat-stalk" d="M460,120 Q455,62 470,8 Q462,45 465,120 Z" opacity="0.45"/>
+      <path class="wheat-stalk" d="M540,120 Q548,52 535,15 Q542,50 545,120 Z" opacity="0.4"/>
+      <path class="wheat-stalk" d="M620,120 Q615,58 630,22 Q622,48 625,120 Z" opacity="0.35"/>
+      <path class="wheat-stalk" d="M700,120 Q708,48 695,10 Q702,52 705,120 Z" opacity="0.45"/>
+      <path class="wheat-stalk" d="M780,120 Q775,60 790,16 Q782,50 785,120 Z" opacity="0.4"/>
+      <path class="wheat-stalk" d="M860,120 Q868,52 855,12 Q862,48 865,120 Z" opacity="0.35"/>
+      <path class="wheat-stalk" d="M940,120 Q935,55 950,18 Q942,50 945,120 Z" opacity="0.45"/>
+      <path class="wheat-stalk" d="M1020,120 Q1028,45 1015,8 Q1022,52 1025,120 Z" opacity="0.4"/>
+      <path class="wheat-stalk" d="M1100,120 Q1095,62 1110,20 Q1102,48 1105,120 Z" opacity="0.35"/>
+      <path class="wheat-stalk" d="M1170,120 Q1178,50 1165,14 Q1172,55 1175,120 Z" opacity="0.45"/>
+    </svg>
+  </div>
+
   <!-- Mobile Navigation Header -->
   <header class="mobile-header">
     <div class="brand-title" style="font-size:1.3rem;">🌾 AgriConnect</div>
@@ -37,7 +63,10 @@
       </nav>
 
       <div class="sidebar-footer">
-        Built for voice-first farm decisions
+        <div>Built for voice-first farm decisions</div>
+        <button type="button" class="wallpaper-toggle-btn" id="btn-toggle-wallpaper">
+          <span>🌿</span> Live Wallpaper: <span id="wallpaper-status-text">ON</span>
+        </button>
       </div>
     </aside>
 
@@ -62,7 +91,13 @@
         <div class="form-grid-3">
           <div class="form-group">
             <label class="form-label" for="input-location">Your current village or location</label>
-            <input type="text" id="input-location" class="form-control" placeholder="Example: Mangalagiri, Andhra Pradesh">
+            <div class="input-action-group">
+              <input type="text" id="input-location" class="form-control" placeholder="Type ANY town (e.g. Warangal, Kurnool, Tenali)...">
+              <button type="button" id="btn-discover-mandis" class="btn-discover-mandis" title="Discover nearest mandis via AI">
+                <span>🔍</span> Discover Mandis
+              </button>
+            </div>
+            <div id="mandi-discovery-status"></div>
           </div>
           <div class="form-group">
             <label class="form-label" for="input-quantity">Harvest quantity (kg)</label>
@@ -77,7 +112,7 @@
         <!-- Voice Input Accordion -->
         <div class="accordion">
           <div class="accordion-header">
-            <span>🎙️ Speak instead of typing</span>
+            <span>🎙️ Speak instead of typing (Telugu / Hindi / English)</span>
             <span style="font-size:0.8rem;">▼</span>
           </div>
           <div class="accordion-body">
@@ -92,6 +127,13 @@
                 </button>
               </div>
             </div>
+
+            <!-- Live Speech Audio Waveform Canvas -->
+            <canvas id="voice-waveform-canvas"></canvas>
+
+            <!-- Interim Live Transcript Preview -->
+            <div id="voice-interim-preview" class="interim-preview-box"></div>
+
             <div id="voice-feedback-alert" class="voice-alert info" style="display:none;"></div>
           </div>
         </div>
@@ -262,6 +304,68 @@
     </main>
   </div>
 
+  <!-- Floating Kisan AI Chatbot Trigger -->
+  <button id="kisan-ai-fab" type="button" aria-label="Open Kisan AI Assistant">
+    <span class="fab-icon">🌾</span>
+    <span>Ask Kisan AI</span>
+  </button>
+
+  <!-- Kisan AI Chatbot Window -->
+  <div id="kisan-chat-window">
+    <div class="chat-header">
+      <div class="chat-header-title">
+        <span style="font-size:1.35rem;">🌾</span>
+        <div>
+          <h4>Kisan AI Assistant</h4>
+          <span style="font-size:0.75rem; color:#d9e4d4;"><span class="chat-status-dot"></span> Online · Smart Agricultural Advisor</span>
+        </div>
+      </div>
+      <div class="chat-header-actions">
+        <button class="chat-action-btn" id="btn-chat-settings" title="Settings (OpenAI Key)">⚙️</button>
+        <button class="chat-action-btn" id="btn-close-chat" title="Minimize">✖</button>
+      </div>
+    </div>
+
+    <!-- Chat Settings Overlay -->
+    <div class="chat-settings-overlay" id="chat-settings-overlay">
+      <h4 style="margin-bottom:0.4rem; color:var(--ink);">AI Intelligence Settings</h4>
+      <p style="font-size:0.85rem; color:#555; margin-bottom:1.1rem; line-height:1.4;">
+        Connect your OpenAI API key for live GPT-4o intelligence. If left empty, Kisan AI seamlessly runs its built-in Indian agricultural knowledgebase.
+      </p>
+      <div class="form-group" style="margin-bottom:1.2rem;">
+        <label class="form-label" for="input-openai-key">OpenAI API Key (optional)</label>
+        <input type="password" id="input-openai-key" class="form-control" placeholder="sk-proj-..." />
+      </div>
+      <div class="btn-row">
+        <button type="button" id="btn-save-key" class="btn btn-primary">Save Key</button>
+        <button type="button" id="btn-close-settings" class="btn btn-outline">Close</button>
+      </div>
+    </div>
+
+    <!-- Chat Messages Scroll Container -->
+    <div class="chat-messages" id="chat-messages-container">
+      <div class="chat-bubble bot">
+        <strong>🌾 Namaste! I am Kisan AI.</strong><br>
+        Ask me anything about crop diseases, pest remedies, mandi price trends, or government schemes (in English, Telugu, or Hindi)!
+      </div>
+    </div>
+
+    <!-- Quick Questions Chips -->
+    <div class="chat-quick-chips">
+      <button type="button" class="quick-chip" data-query="How to cure tomato blight disease?">🍅 Tomato Blight</button>
+      <button type="button" class="quick-chip" data-query="How to control chilli black thrips?">🌶️ Mirchi Thrips</button>
+      <button type="button" class="quick-chip" data-query="Tell me about PM-Kisan scheme and benefits">🏛️ PM-Kisan Scheme</button>
+      <button type="button" class="quick-chip" data-query="How to manage stem borer in paddy?">🌾 Paddy Protection</button>
+    </div>
+
+    <!-- Chat Input Bar -->
+    <div class="chat-input-bar">
+      <button type="button" class="chat-mic-btn" id="btn-chat-mic" title="Speak to Kisan AI">🎙️</button>
+      <input type="text" id="input-chat-msg" class="chat-input-field" placeholder="Ask your question..." />
+      <button type="button" id="btn-send-chat" class="chat-send-btn" title="Send Message">➤</button>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toast-container"></div>
 
@@ -271,4 +375,3 @@
   <script src="app.js"></script>
 </body>
 </html>
-
