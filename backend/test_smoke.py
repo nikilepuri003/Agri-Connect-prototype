@@ -1,6 +1,6 @@
-from farmer_hub.data import BUYERS, CROPS, MARKETS, QUALITY_GRADES, RENTALS, apply_quality_price, distances_from, market_rows
-from farmer_hub.maps import google_maps_directions_url, google_maps_url
-from farmer_hub.voice import crop_from_voice
+from backend.maps import google_maps_directions_url, google_maps_url
+from backend.voice import crop_from_voice
+from db.data import BUYERS, CROPS, MARKETS, QUALITY_GRADES, RENTALS, apply_quality_price, distances_from, market_rows
 
 
 def test_data_and_crop_matching() -> None:

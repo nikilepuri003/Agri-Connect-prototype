@@ -4,6 +4,8 @@ from io import BytesIO
 
 import streamlit as st
 
+from .config import google_speech_api_key
+
 try:
     import speech_recognition as sr
 except ImportError:
@@ -48,7 +50,11 @@ def render_voice_input() -> str:
         recognizer = sr.Recognizer()
         with sr.AudioFile(BytesIO(audio.getvalue())) as source:
             recording = recognizer.record(source)
-        result = recognizer.recognize_google(recording, language=language_code)
+        result = recognizer.recognize_google(
+            recording,
+            key=google_speech_api_key() or None,
+            language=language_code,
+        )
         st.success(f"Heard: {result}")
         return result
     except sr.UnknownValueError:

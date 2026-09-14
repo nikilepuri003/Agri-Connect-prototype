@@ -25,28 +25,42 @@ The project is configured to open `http://localhost:8501` automatically when it 
 .\.venv\Scripts\python.exe -m streamlit run app.py
 ```
 
-The app is also self-contained in `farmer_hub/`; the root `app.py` is the supported launcher.
+The root `app.py` is the supported launcher. The code is split into presentation, service, and data layers.
 
    ## Included
 
    - Crop choices with visual icons and a low-reading-load workflow.
    - Browser microphone capture with language selection for English, Hindi, Telugu, Tamil, Kannada, Malayalam, Marathi, Bengali, and other languages.
    - Market map with local coordinates, distances, and recognizable landmarks.
-   - Google Maps direction links without hard-coding an API key.
+  - Google Maps direction links without hard-coding an API key.
    - Direct buyer offers with quantity requirements and a connect action.
    - A warm, high-contrast farmer-facing theme.
 
-   Voice transcription uses Google Speech Recognition through `SpeechRecognition`, so it needs internet access. The map pins and landmark data are local demo data; replace `farmer_hub/data.py` with live market data when a production source is available.
+  Voice transcription uses Google Speech Recognition through `SpeechRecognition`, so it needs internet access. The map pins and landmark data are local demo data; replace `db/data.py` with live market data when a production source is available.
 
    ## Folder
 
    ```text
-   farmer_hub/
-     data.py      Demo markets, landmarks, crops, and buyer offers
+   frontend/
+     ui.py        Streamlit pages, widgets, and theme
+   backend/
+     config.py    Secrets and API-key access
      maps.py      Map display and Google Maps links
-     voice.py     Browser audio capture and multilingual transcription
-     ui.py        Farmer workflow and theme
+     voice.py     Browser audio capture and transcription
+   db/
+     data.py      Demo markets, landmarks, crops, and buyer offers
    ```
+
+## API keys
+
+The app reads optional keys from Streamlit secrets first, then environment variables. Copy `.streamlit/secrets.toml.example` to `.streamlit/secrets.toml` for local use, or add the same values under **App settings > Secrets** in Streamlit Community Cloud:
+
+```toml
+GOOGLE_MAPS_API_KEY = "your-key"
+GOOGLE_SPEECH_API_KEY = "your-key"
+```
+
+Never commit real keys. The current Google Maps links work without a key; the speech key is passed to Google Speech Recognition when configured.
 
 ## Deploy
 

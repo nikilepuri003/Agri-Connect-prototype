@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from .data import MARKETS
+from db.data import MARKETS
 
 
 def render_market_map() -> None:

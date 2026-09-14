@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import streamlit as st
 
-from .data import BUYERS, CROPS, MARKETS, QUALITY_GRADES, RENTALS, apply_quality_price, distances_from, market_rows
-from .maps import google_maps_directions_url, google_maps_url, render_market_map
-from .voice import crop_from_voice, render_voice_input
+from backend.maps import google_maps_directions_url, google_maps_url, render_market_map
+from backend.voice import crop_from_voice, render_voice_input
+from db.data import BUYERS, CROPS, MARKETS, QUALITY_GRADES, RENTALS, apply_quality_price, distances_from, market_rows
 
 
 def inject_theme() -> None:
