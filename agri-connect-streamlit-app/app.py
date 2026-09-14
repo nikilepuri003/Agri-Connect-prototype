@@ -3,6 +3,8 @@
 AgriConnect Launcher (app.py)
 """
 
+from server import main
+
 if __name__ == "__main__":
     from backend.server import load_config, run_server
     cfg = load_config()
