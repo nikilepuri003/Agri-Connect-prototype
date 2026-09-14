@@ -1,0 +1,10 @@
+{
+  "buildCommand": "",
+  "outputDirectory": "frontend",
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/api/data", "destination": "/data.json" },
+    { "source": "/api/health", "destination": "/data.json" }
+  ]
+}
+

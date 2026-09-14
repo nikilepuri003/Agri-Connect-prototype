@@ -1,0 +1,7 @@
+{
+  "port": 8000,
+  "host": "localhost",
+  "google_maps_api_key": "",
+  "google_speech_api_key": ""
+}
+

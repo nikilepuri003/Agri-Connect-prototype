@@ -1,0 +1,13 @@
+[build]
+  publish = "agri-connect-streamlit-app/frontend"
+
+[[redirects]]
+  from = "/api/data"
+  to = "/data.json"
+  status = 200
+
+[[redirects]]
+  from = "/api/health"
+  to = "/data.json"
+  status = 200
+

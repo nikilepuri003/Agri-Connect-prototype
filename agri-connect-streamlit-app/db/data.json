@@ -1,0 +1,176 @@
+{
+  "crops": {
+    "Tomato": { "icon": "🍅", "unit": "₹/kg" },
+    "Chilli": { "icon": "🌶️", "unit": "₹/kg" },
+    "Rice": { "icon": "🌾", "unit": "₹/kg" },
+    "Cotton": { "icon": "☁️", "unit": "₹/kg" },
+    "Wheat": { "icon": "🌱", "unit": "₹/kg" }
+  },
+  "quality_grades": {
+    "Premium grade": {
+      "adjustment": 1.12,
+      "description": "Clean, fresh, uniform produce"
+    },
+    "Standard grade": {
+      "adjustment": 1.00,
+      "description": "Good market-ready produce"
+    },
+    "Value grade": {
+      "adjustment": 0.88,
+      "description": "Mixed size or lower visual quality"
+    }
+  },
+  "markets": [
+    {
+      "market": "Guntur Market",
+      "location": "Guntur",
+      "latitude": 16.3067,
+      "longitude": 80.4365,
+      "prices": {
+        "Tomato": 22,
+        "Chilli": 105,
+        "Rice": 32,
+        "Cotton": 68,
+        "Wheat": 30
+      },
+      "distance": 5,
+      "landmarks": "NTR Bus Stand · Guntur Railway Station"
+    },
+    {
+      "market": "Vijayawada Market",
+      "location": "Vijayawada",
+      "latitude": 16.5062,
+      "longitude": 80.6480,
+      "prices": {
+        "Tomato": 25,
+        "Chilli": 115,
+        "Rice": 35,
+        "Cotton": 72,
+        "Wheat": 33
+      },
+      "distance": 35,
+      "landmarks": "Benz Circle · Vijayawada Railway Station"
+    },
+    {
+      "market": "Tenali Market",
+      "location": "Tenali",
+      "latitude": 16.2430,
+      "longitude": 80.6400,
+      "prices": {
+        "Tomato": 23,
+        "Chilli": 110,
+        "Rice": 33,
+        "Cotton": 70,
+        "Wheat": 31
+      },
+      "distance": 30,
+      "landmarks": "Tenali Railway Station · Clock Tower"
+    },
+    {
+      "market": "Narasaraopet Market",
+      "location": "Narasaraopet",
+      "latitude": 16.2342,
+      "longitude": 80.0490,
+      "prices": {
+        "Tomato": 24,
+        "Chilli": 108,
+        "Rice": 31,
+        "Cotton": 69,
+        "Wheat": 29
+      },
+      "distance": 45,
+      "landmarks": "Narasaraopet Railway Station · Palnadu Road"
+    },
+    {
+      "market": "Bapatla Market",
+      "location": "Bapatla",
+      "latitude": 15.9042,
+      "longitude": 80.4670,
+      "prices": {
+        "Tomato": 21,
+        "Chilli": 102,
+        "Rice": 34,
+        "Cotton": 71,
+        "Wheat": 32
+      },
+      "distance": 50,
+      "landmarks": "Bapatla Beach Road · Railway Station"
+    }
+  ],
+  "rentals": [
+    {
+      "market": "Guntur Market",
+      "shop": "Vegetable lane A",
+      "daily_rent": 450,
+      "security_deposit": 1200,
+      "landmark": "Near NTR Bus Stand"
+    },
+    {
+      "market": "Vijayawada Market",
+      "shop": "Fresh produce lane 3",
+      "daily_rent": 650,
+      "security_deposit": 1800,
+      "landmark": "Near Benz Circle"
+    },
+    {
+      "market": "Tenali Market",
+      "shop": "Farmer row 2",
+      "daily_rent": 350,
+      "security_deposit": 900,
+      "landmark": "Near Clock Tower"
+    },
+    {
+      "market": "Narasaraopet Market",
+      "shop": "Main yard stall 8",
+      "daily_rent": 300,
+      "security_deposit": 750,
+      "landmark": "Near Railway Station"
+    },
+    {
+      "market": "Bapatla Market",
+      "shop": "Coastal market row 1",
+      "daily_rent": 275,
+      "security_deposit": 700,
+      "landmark": "Near Beach Road"
+    }
+  ],
+  "location_distance_hints": {
+    "mangalagiri": { "Guntur": 28, "Vijayawada": 18, "Tenali": 35, "Narasaraopet": 70, "Bapatla": 65 },
+    "tenali": { "Guntur": 30, "Vijayawada": 32, "Tenali": 3, "Narasaraopet": 68, "Bapatla": 38 },
+    "guntur": { "Guntur": 5, "Vijayawada": 35, "Tenali": 30, "Narasaraopet": 45, "Bapatla": 50 },
+    "vijayawada": { "Guntur": 35, "Vijayawada": 5, "Tenali": 32, "Narasaraopet": 65, "Bapatla": 75 },
+    "bapatla": { "Guntur": 50, "Vijayawada": 75, "Tenali": 38, "Narasaraopet": 85, "Bapatla": 5 },
+    "narasaraopet": { "Guntur": 45, "Vijayawada": 65, "Tenali": 68, "Narasaraopet": 5, "Bapatla": 85 }
+  },
+  "buyers": [
+    { "buyer": "ABC Vegetables", "crop": "Tomato", "price": 24, "quantity": "500–2,000 kg", "location": "Vijayawada", "type": "Fresh produce retailer" },
+    { "buyer": "FreshMart", "crop": "Tomato", "price": 23, "quantity": "500–1,500 kg", "location": "Guntur", "type": "Supermarket chain" },
+    { "buyer": "Agro Foods Ltd", "crop": "Chilli", "price": 118, "quantity": "1,000–5,000 kg", "location": "Vijayawada", "type": "Food processor" },
+    { "buyer": "Sri Lakshmi Traders", "crop": "Rice", "price": 36, "quantity": "2,000–10,000 kg", "location": "Tenali", "type": "Grain wholesaler" },
+    { "buyer": "FarmFresh Pvt Ltd", "crop": "Cotton", "price": 73, "quantity": "1,000–5,000 kg", "location": "Guntur", "type": "Textile supplier" },
+    { "buyer": "Green Valley", "crop": "Wheat", "price": 35, "quantity": "500–3,000 kg", "location": "Bapatla", "type": "Flour mill" },
+    { "buyer": "Organic Harvest", "crop": "Tomato", "price": 22, "quantity": "1,000–4,000 kg", "location": "Narasaraopet", "type": "Organic grocer" },
+    { "buyer": "City Farmers Market", "crop": "Chilli", "price": 115, "quantity": "2,000–8,000 kg", "location": "Guntur", "type": "Local market collective" }
+  ],
+  "voice": {
+    "languages": {
+      "English": "en-IN",
+      "Hindi": "hi-IN",
+      "Telugu": "te-IN",
+      "Tamil": "ta-IN",
+      "Kannada": "kn-IN",
+      "Malayalam": "ml-IN",
+      "Marathi": "mr-IN",
+      "Bengali": "bn-IN",
+      "Any other language": "en-IN"
+    },
+    "crop_words": {
+      "tomato": "Tomato", "టమాటా": "Tomato", "tamatar": "Tomato",
+      "chilli": "Chilli", "chili": "Chilli", "mirchi": "Chilli", "మిర్చి": "Chilli",
+      "rice": "Rice", "paddy": "Rice", "biyyam": "Rice", "బియ్యం": "Rice",
+      "cotton": "Cotton", "kapas": "Cotton", "పత్తి": "Cotton",
+      "wheat": "Wheat", "gehun": "Wheat", "గోధుమ": "Wheat"
+    }
+  }
+}
+
