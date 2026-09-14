@@ -1,14 +1,12 @@
 from backend.maps import google_maps_directions_url, google_maps_url
-from backend.voice import crop_from_voice
-from db.data import BUYERS, CROPS, MARKETS, QUALITY_GRADES, RENTALS, apply_quality_price, distances_from, market_rows
+from backend.server import recommendation
+from database.data import BUYERS, CROPS, MARKETS, QUALITY_GRADES, RENTALS, apply_quality_price, distances_from, market_rows
 
 
 def test_data_and_crop_matching() -> None:
     assert set(CROPS) == {"Tomato", "Chilli", "Rice", "Cotton", "Wheat"}
     assert len(MARKETS) == len(RENTALS) == 5
     assert len(BUYERS) > 0
-    assert crop_from_voice("I want to sell mirchi") == "Chilli"
-    assert crop_from_voice("నేను టమాటా అమ్మాలి") == "Tomato"
     assert "Price (₹/kg)" in market_rows("Rice")
 
 
@@ -27,3 +25,9 @@ def test_quality_changes_price() -> None:
     assert apply_quality_price(100, "Standard grade") == 100
     assert apply_quality_price(100, "Value grade") == 88
     assert len(QUALITY_GRADES) == 3
+
+
+def test_recommendation_api() -> None:
+    result = recommendation({"crop": "Tomato", "location": "Mangalagiri", "quantity": 500, "transport_cost": 12, "grade": "Premium grade"})
+    assert result["best"]["location"] == "Vijayawada"
+    assert result["offers"]

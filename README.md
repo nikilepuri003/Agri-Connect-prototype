@@ -1,6 +1,6 @@
-# AgriConnect Streamlit App
+# AgriConnect Web App
 
-AgriConnect is an innovative Streamlit application designed to empower farmers by providing them with essential tools for market linkage and price discovery. This application allows farmers to easily compare market prices, find potential buyers, and manage their crop sales efficiently.
+AgriConnect is a browser-based Python web application designed to empower farmers with market linkage and price discovery. The frontend uses HTML, CSS, and JavaScript, the backend exposes JSON endpoints, and the database layer contains the market data and pricing rules.
 
 ## Features
 
@@ -16,59 +16,60 @@ Install dependencies and start the supported root launcher:
 
 ```bash
 pip install -r requirements.txt
-streamlit run app.py
+python app.py
 ```
 
-The project is configured to open `http://localhost:8501` automatically when it starts. On Windows, you can use the project environment directly:
+The project is configured to open `http://localhost:8000` automatically when it starts. On Windows, you can use the project environment directly:
 
 ```powershell
-.\.venv\Scripts\python.exe -m streamlit run app.py
+.\.venv\Scripts\python.exe app.py
 ```
 
-The root `app.py` is the supported launcher. The code is split into presentation, service, and data layers.
+The root `app.py` is the supported launcher. The code is split into frontend, backend, and database layers.
 
    ## Included
 
    - Crop choices with visual icons and a low-reading-load workflow.
-   - Browser microphone capture with language selection for English, Hindi, Telugu, Tamil, Kannada, Malayalam, Marathi, Bengali, and other languages.
+  - Browser microphone capture through the Web Speech API when supported by the browser.
    - Market map with local coordinates, distances, and recognizable landmarks.
   - Google Maps direction links without hard-coding an API key.
    - Direct buyer offers with quantity requirements and a connect action.
    - A warm, high-contrast farmer-facing theme.
 
-  Voice transcription uses Google Speech Recognition through `SpeechRecognition`, so it needs internet access. The map pins and landmark data are local demo data; replace `db/data.py` with live market data when a production source is available.
+  Voice input uses the browser Web Speech API. The map pins and landmark data are local demo data; replace `database/data.py` with live market data when a production source is available.
 
    ## Folder
 
    ```text
    frontend/
-     ui.py        Streamlit pages, widgets, and theme
+     index.html   Browser page structure
+     style.css    Responsive visual design
+     app.js       Browser interactions and API calls
    backend/
-     config.py    Secrets and API-key access
-     maps.py      Map display and Google Maps links
-     voice.py     Browser audio capture and transcription
-   db/
+     server.py    Python HTTP server and JSON API
+     config.py    Environment-based API-key access
+     maps.py      Map helpers
+   database/
      data.py      Demo markets, landmarks, crops, and buyer offers
    ```
 
 ## API keys
 
-The app reads optional keys from Streamlit secrets first, then environment variables. Copy `.streamlit/secrets.toml.example` to `.streamlit/secrets.toml` for local use, or add the same values under **App settings > Secrets** in Streamlit Community Cloud:
+The app reads optional keys from environment variables or deployment secrets. Configure these values in your host:
 
 ```toml
 GOOGLE_MAPS_API_KEY = "your-key"
 GOOGLE_SPEECH_API_KEY = "your-key"
 ```
 
-Never commit real keys. The current Google Maps links work without a key; the speech key is passed to Google Speech Recognition when configured.
+For environment-based hosts, use `GOOGLE_MAPS_API_KEY` and `GOOGLE_SPEECH_API_KEY` environment variables. Never commit real keys. The current Google Maps links work without a key, and browser voice input works without a server key when the browser supports Web Speech.
 
 ## Deploy
 
-For Streamlit Community Cloud:
+For a Python host such as Render, Railway, or a VM:
 
 1. Push this project to a GitHub repository.
-2. In Streamlit Community Cloud, choose **Deploy an app**.
-3. Select the repository, branch, and `app.py` as the main file.
-4. Deploy.
+2. Start the service with `python app.py`.
+3. Expose port `8000` (or use the host-provided `PORT` variable).
 
-The cloud service installs `requirements.txt` automatically. No API key is required for the included demo maps; voice transcription requires internet access.
+The previous Streamlit deployment is no longer the correct target for this HTML/JS/Python version. The included demo map links do not require an API key.
