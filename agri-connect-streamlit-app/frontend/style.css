@@ -608,6 +608,31 @@ h1, h2, h3, h4, .brand-title, .metric-value {
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
 }
 
+.video-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.15rem;
+  margin-bottom: 1rem;
+}
+
+.video-art {
+  display: grid;
+  place-items: center;
+  flex: 0 0 94px;
+  height: 70px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, var(--leaf), var(--ink));
+  color: #fff;
+  font-size: 1.7rem;
+}
+
+.video-card h4 { margin: 0.25rem 0; font-size: 1.1rem; }
+.video-card p { color: #55756c; font-size: 0.85rem; margin: 0 0 0.65rem; }
+
 .buyer-info h4 {
   font-size: 1.1rem;
   margin-bottom: 0.25rem;
@@ -696,6 +721,7 @@ h1, h2, h3, h4, .brand-title, .metric-value {
   .main-content {
     padding: 1.5rem;
   }
+  .video-card { align-items: flex-start; flex-direction: column; }
   .hero {
     min-height: 340px;
     padding: 1.5rem;

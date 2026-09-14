@@ -3,8 +3,8 @@
   "outputDirectory": "frontend",
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/api/data", "destination": "/data.json" },
-    { "source": "/api/health", "destination": "/data.json" }
+    { "source": "/api/market-lookup", "destination": "/api/market_lookup" },
+    { "source": "/api/health", "destination": "/api/data" }
   ]
 }
 
