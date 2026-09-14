@@ -13,14 +13,19 @@ def inject_theme() -> None:
         <style>
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
         :root { --ink:#173b35; --leaf:#287a55; --sun:#f3b33d; --paper:#fbf8ef; --line:#d9e4d4; }
-        .stApp { background: radial-gradient(circle at 88% 0%, #f8df9b 0, transparent 25%), linear-gradient(135deg,#fbf8ef 0%,#eef5e8 55%,#f7f0d8 100%); color:var(--ink); }
+        .stApp { background:linear-gradient(135deg,#f8f4e5 0%,#edf5e6 52%,#dbe9d8 100%); color:var(--ink); }
         .stApp, .stApp p, .stApp label, [data-testid='stMarkdownContainer'] { font-family:'DM Sans',sans-serif; }
         h1,h2,h3 { font-family:'Space Grotesk',sans-serif !important; color:var(--ink) !important; }
         [data-testid='stSidebar'] { background:linear-gradient(180deg,#173b35,#235d47); }
         [data-testid='stSidebar'] * { color:#f8f4e6 !important; }
-        .hero { padding:1.8rem 2rem; border:1px solid #e3d59e; border-radius:18px; background:rgba(255,252,239,.82); box-shadow:0 12px 30px rgba(38,75,48,.08); }
+        .hero { position:relative; isolation:isolate; overflow:hidden; min-height:250px; padding:2rem 2.2rem; border:1px solid rgba(209,187,122,.75); border-radius:20px; background:linear-gradient(100deg,rgba(255,252,239,.97) 0%,rgba(255,252,239,.93) 48%,rgba(243,225,157,.25) 100%); box-shadow:0 18px 38px rgba(38,75,48,.13); }
+        .hero-copy { position:relative; z-index:2; max-width:64%; }
         .eyebrow { color:#a06419; font-weight:700; letter-spacing:.08em; text-transform:uppercase; font-size:.76rem; }
-        .hero h1 { margin:.35rem 0 .4rem; font-size:2.6rem; }
+        .hero h1 { margin:.35rem 0 .4rem; font-size:2.45rem; word-break:normal; overflow-wrap:normal; hyphens:none; }
+        .hero p { max-width:560px; }
+        .farmer-frame { position:absolute; right:2.3rem; bottom:0; width:215px; height:222px; border:8px solid rgba(255,252,239,.78); border-bottom:0; border-radius:108px 108px 0 0; background:#718a62; box-shadow:0 14px 0 rgba(23,59,53,.1),0 18px 32px rgba(23,59,53,.2); overflow:hidden; }
+        .farmer-photo { display:block; width:100%; height:100%; object-fit:cover; object-position:center; filter:saturate(1.08) contrast(1.03); }
+        @media (max-width:700px) { .hero { min-height:360px; padding:1.5rem; } .hero-copy { max-width:100%; } .hero h1 { font-size:2.15rem; } .farmer-frame { right:50%; transform:translateX(50%); width:170px; height:176px; } }
         .choice { padding:1rem 1.15rem; border:1px solid var(--line); border-radius:14px; background:rgba(255,255,255,.63); min-height:132px; }
         .choice-icon { font-size:2rem; }
         div[data-testid='stMetric'] { background:rgba(255,255,255,.6); border:1px solid var(--line); padding:1rem; border-radius:14px; }
@@ -43,7 +48,7 @@ def sidebar() -> str:
 
 def render_header() -> None:
     st.markdown(
-        '<div class="hero"><div class="eyebrow">Today\'s selling desk</div><h1>Sell with confidence.</h1><p>Find a nearby market, compare today\'s prices, and choose the path that works best for your harvest.</p></div>',
+        '<div class="hero"><div class="hero-copy"><div class="eyebrow">Today\'s selling desk</div><h1>Sell with confidence.</h1><p>Find a nearby market, compare today\'s prices, and choose the path that works best for your harvest.</p></div><div class="farmer-frame" aria-hidden="true"><img class="farmer-photo" src="https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=700&q=85" alt="Farmer working in a green field"></div></div>',
         unsafe_allow_html=True,
     )
 

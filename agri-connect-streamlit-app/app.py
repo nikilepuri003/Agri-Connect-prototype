@@ -1,4 +1,4 @@
-from farmer_hub.app import main
+from farmer_hub.ui import run
 
 
-main()
+run()

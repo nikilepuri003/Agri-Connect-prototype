@@ -42,7 +42,6 @@ The app is also self-contained in `farmer_hub/`; the root `app.py` is the suppor
 
    ```text
    farmer_hub/
-     app.py       Streamlit entry point
      data.py      Demo markets, landmarks, crops, and buyer offers
      maps.py      Map display and Google Maps links
      voice.py     Browser audio capture and multilingual transcription
